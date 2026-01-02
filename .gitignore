@@ -1,0 +1,8 @@
+.DS_Store
+**/build/
+**/out/
+**/node_modules/
+**/.gradle/
+**/.idea/
+**/*.iml
+**/dist/
