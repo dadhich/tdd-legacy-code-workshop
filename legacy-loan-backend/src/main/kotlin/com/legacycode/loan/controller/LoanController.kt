@@ -7,12 +7,11 @@ import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/loan")
-@CrossOrigin(origins = ["http://localhost:5173"]) // Allow local React app
+@CrossOrigin(origins = ["http://localhost:5173"])
 class LoanController(private val loanService: LegacyLoanService) {
 
     @PostMapping("/apply")
     fun applyForLoan(@RequestBody request: LoanRequestDTO): LoanResponseDTO {
-        // No try-catch here, let exceptions bubble up to the user!
         return loanService.processApplication(request)
     }
 }
