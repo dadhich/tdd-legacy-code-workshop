@@ -14,25 +14,26 @@ import java.time.ZoneId
 @SpringBootTest
 class RefactoringSafetyNetTest {
 
-    // 1. Inject the REAL repository into the test context
+    // Inject the REAL H2 repository from Spring Context
     @Autowired
     lateinit var realRepository: LoanRepository
 
-    // The Golden Master: We capture the EXACT current behaviour
     @Test
-    fun `GOLDEN MASTER - existing behaviour for standard applicant`() {
-        // Arrange
-        // Inject a fixed time (10 AM)
+    fun `GOLDEN MASTER - verify behaviour regardless of time`() {
+        // 1. Create a Fixed Clock (10:00 AM) to ensure test passes even at night
         val fixedClock = Clock.fixed(
-            Instant.parse("2026-01-01T10:00:00Z"),
-            ZoneId.of("UTC")
+            Instant.parse("2023-10-01T10:00:00Z"),
+            ZoneId.systemDefault()
         )
 
+        // 2. Instantiate the service manually using the REAL repository + FAKE clock
+        //    (This works because we fixed the Constructor Injection in this branch)
         val service = LegacyLoanService(realRepository, fixedClock)
 
+        // Arrange
         val request = LoanRequestDTO(
             applicantName = "John Doe",
-            taxId = "123456", // Safe ID
+            taxId = "123456",
             amount = 1000.0,
             applicantAge = 30
         )
@@ -42,5 +43,6 @@ class RefactoringSafetyNetTest {
 
         // Assert
         assertEquals("APPROVED", response.status)
+        assertEquals("Congratulations! Loan approved based on excellent credit.", response.message)
     }
 }
