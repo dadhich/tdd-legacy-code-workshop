@@ -6,23 +6,25 @@ import com.legacycode.loan.model.LoanEntity
 import com.legacycode.loan.model.LoanRepository
 import com.legacycode.loan.model.LoanRequestDTO
 import com.legacycode.loan.model.LoanResponseDTO
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.time.Clock
 import java.time.LocalDateTime
 
 @Service
-class LegacyLoanService {
+class LegacyLoanService(
+    private val loanRepository: LoanRepository,
+    private val clock: Clock = Clock.systemDefaultZone(),
+    // CHANGED: Injected EmailService (Seam created!)
+    private val emailService: EmailService
+) {
 
-    @Autowired
-    private lateinit var loanRepository: LoanRepository
-
-    // Hard Dependency
-    private val emailService = EmailService("smtp.corporate.com")
+    // REMOVED: private val emailService = EmailService("...")
 
     fun processApplication(request: LoanRequestDTO): LoanResponseDTO {
         println("Processing application for ${request.applicantName}")
 
-        val currentHour = LocalDateTime.now().hour
+        val currentHour = LocalDateTime.now(clock).hour
+
         if (currentHour < 8 || currentHour > 18) {
             return LoanResponseDTO("ERROR", "System only available between 8am and 6pm.")
         }
@@ -34,6 +36,7 @@ class LegacyLoanService {
             return LoanResponseDTO("REJECTED", "Applicant too young.")
         }
 
+        // This static call is still here (fixed in branch 03)
         val creditScore = ExternalCreditBureau.getCreditScore(request.taxId)
         println("Credit score received: $creditScore")
 
@@ -61,6 +64,7 @@ class LegacyLoanService {
 
         if (status == "APPROVED") {
             try {
+                // Uses the injected service now
                 emailService.sendConfirmation("admin@bank.com", "Loan ${savedEntity.id} approved.")
             } catch (e: Exception) {
                 println("Failed to send email, but continuing anyway: ${e.message}")
