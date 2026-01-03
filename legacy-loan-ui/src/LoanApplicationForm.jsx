@@ -9,6 +9,20 @@ const LoanApplicationForm = () => {
     const [submissionStatus, setSubmissionStatus] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    // Helper to determine alert styles
+    const getAlertStyle = (type) => {
+        switch (type) {
+            case 'error':
+                return { backgroundColor: '#ffdddd', color: 'red' };
+            case 'success':
+                return { backgroundColor: '#ddffdd', color: 'green' };
+            case 'warning': // NEW STYLE
+                return { backgroundColor: '#fff3cd', color: '#856404' };
+            default:
+                return {};
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setErrors({});
@@ -55,11 +69,15 @@ const LoanApplicationForm = () => {
 
             const data = await response.json();
 
-            if (data.status === 'ERROR' || data.status === 'REJECTED') {
+            // --- CHANGED LOGIC HERE ---
+            if (data.status === 'HIGH_RISK_REQUIRED') {
+                setSubmissionStatus({ type: 'warning', msg: data.message });
+            } else if (data.status === 'ERROR' || data.status === 'REJECTED') {
                 setSubmissionStatus({ type: 'error', msg: data.message });
             } else {
                 setSubmissionStatus({ type: 'success', msg: `${data.message} (ID: ${data.loanId})` });
             }
+            // --------------------------
 
         } catch (err) {
             setSubmissionStatus({ type: 'error', msg: "Network Error: Could not reach backend." });
@@ -72,11 +90,10 @@ const LoanApplicationForm = () => {
         <div style={{ maxWidth: '500px', border: '1px solid #ccc', padding: '20px' }}>
             <h2>Apply for a Loan</h2>
             {submissionStatus && (
-                <div style={{
+                <div role="alert" style={{
                     padding: '10px',
                     marginBottom: '10px',
-                    backgroundColor: submissionStatus.type === 'error' ? '#ffdddd' : '#ddffdd',
-                    color: submissionStatus.type === 'error' ? 'red' : 'green'
+                    ...getAlertStyle(submissionStatus.type) // Use helper function
                 }}>
                     {submissionStatus.msg}
                 </div>
@@ -84,26 +101,26 @@ const LoanApplicationForm = () => {
 
             <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: '10px' }}>
-                    <label>Full Name:</label><br/>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%' }} />
+                    <label htmlFor="name">Full Name:</label><br/>
+                    <input id="name" type="text" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%' }} />
                     {errors.name && <small style={{color: 'red'}}>{errors.name}</small>}
                 </div>
 
                 <div style={{ marginBottom: '10px' }}>
-                    <label>Tax ID (use '999...' to fail API):</label><br/>
-                    <input type="text" value={taxId} onChange={e => setTaxId(e.target.value)} style={{ width: '100%' }} />
+                    <label htmlFor="taxId">Tax ID (use '999...' to fail API):</label><br/>
+                    <input id="taxId" type="text" value={taxId} onChange={e => setTaxId(e.target.value)} style={{ width: '100%' }} />
                     {errors.taxId && <small style={{color: 'red'}}>{errors.taxId}</small>}
                 </div>
 
                 <div style={{ marginBottom: '10px' }}>
-                    <label>Loan Amount ($):</label><br/>
-                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ width: '100%' }} />
+                    <label htmlFor="amount">Loan Amount ($):</label><br/>
+                    <input id="amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} style={{ width: '100%' }} />
                     {errors.amount && <small style={{color: 'red'}}>{errors.amount}</small>}
                 </div>
 
                 <div style={{ marginBottom: '10px' }}>
-                    <label>Applicant Age:</label><br/>
-                    <input type="number" value={age} onChange={e => setAge(e.target.value)} style={{ width: '100%' }} />
+                    <label htmlFor="age">Applicant Age:</label><br/>
+                    <input id="age" type="number" value={age} onChange={e => setAge(e.target.value)} style={{ width: '100%' }} />
                 </div>
 
                 <button type="submit" disabled={isLoading} style={{ padding: '10px 20px' }}>
