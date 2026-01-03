@@ -15,8 +15,9 @@ class LegacyLoanService(
     private val loanRepository: LoanRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val emailService: EmailService,
-    // CHANGED: Injected the Interface
-    private val creditBureau: ICreditBureau
+    private val creditBureau: ICreditBureau,
+    // CHANGED: Inject the new clean component
+    private val riskAssessor: RiskAssessor
 ) {
 
     fun processApplication(request: LoanRequestDTO): LoanResponseDTO {
@@ -28,6 +29,16 @@ class LegacyLoanService(
             return LoanResponseDTO("ERROR", "System only available between 8am and 6pm.")
         }
 
+        // NEW FEATURE: High Risk Check
+        // We do this BEFORE the expensive/fragile credit check
+        if (riskAssessor.isHighRisk(request.applicantAge, request.amount)) {
+            println("Application flagged as High Risk")
+            return LoanResponseDTO(
+                status = "HIGH_RISK_REQUIRED",
+                message = "Manual approval needed"
+            )
+        }
+
         if (request.amount > 1000000) {
             return LoanResponseDTO("REJECTED", "Loan amount too high for auto-approval.")
         }
@@ -35,11 +46,7 @@ class LegacyLoanService(
             return LoanResponseDTO("REJECTED", "Applicant too young.")
         }
 
-        // CHANGED: No longer calling the static method directly.
-        // We call the injected instance.
-        // OLD: val creditScore = ExternalCreditBureau.getCreditScore(request.taxId)
         val creditScore = creditBureau.getCreditScore(request.taxId)
-
         println("Credit score received: $creditScore")
 
         var status = "PENDING"

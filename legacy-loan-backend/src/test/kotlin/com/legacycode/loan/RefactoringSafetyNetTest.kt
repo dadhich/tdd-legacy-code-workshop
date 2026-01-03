@@ -5,6 +5,7 @@ import com.legacycode.loan.external.ICreditBureau
 import com.legacycode.loan.model.LoanRepository
 import com.legacycode.loan.model.LoanRequestDTO
 import com.legacycode.loan.service.LegacyLoanService
+import com.legacycode.loan.service.RiskAssessor
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -32,23 +33,25 @@ class RefactoringSafetyNetTest {
         val mockEmailService = mock(EmailService::class.java)
 
         // 3. Fake Credit Bureau (Stub)
-        // Instead of mocking, we implement a simple fake that returns what we want.
-        // This completely bypasses the static ExternalCreditBureau.
         val fakeCreditBureau = object : ICreditBureau {
-            override fun getCreditScore(taxId: String): Int {
-                return 750 // Always excellent credit
-            }
+            override fun getCreditScore(taxId: String) = 750
         }
 
-        // 4. Instantiate Service with all controlled dependencies
+        // 4. Real Risk Assessor (New Dependency)
+        // Since it has no external dependencies, we can use the real one safely.
+        val riskAssessor = RiskAssessor()
+
+        // 5. Instantiate Service
         val service = LegacyLoanService(
             realRepository,
             fixedClock,
             mockEmailService,
-            fakeCreditBureau
+            fakeCreditBureau,
+            riskAssessor
         )
 
         // Arrange
+        // Note: Age 30, Amount 1000 does NOT trigger High Risk, so existing behavior is preserved.
         val request = LoanRequestDTO(
             applicantName = "John Doe",
             taxId = "123456",
