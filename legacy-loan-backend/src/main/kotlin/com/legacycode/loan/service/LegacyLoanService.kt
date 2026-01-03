@@ -1,7 +1,7 @@
 package com.legacycode.loan.service
 
 import com.legacycode.loan.external.EmailService
-import com.legacycode.loan.external.ExternalCreditBureau
+import com.legacycode.loan.external.ICreditBureau
 import com.legacycode.loan.model.LoanEntity
 import com.legacycode.loan.model.LoanRepository
 import com.legacycode.loan.model.LoanRequestDTO
@@ -14,11 +14,10 @@ import java.time.LocalDateTime
 class LegacyLoanService(
     private val loanRepository: LoanRepository,
     private val clock: Clock = Clock.systemDefaultZone(),
-    // CHANGED: Injected EmailService (Seam created!)
-    private val emailService: EmailService
+    private val emailService: EmailService,
+    // CHANGED: Injected the Interface
+    private val creditBureau: ICreditBureau
 ) {
-
-    // REMOVED: private val emailService = EmailService("...")
 
     fun processApplication(request: LoanRequestDTO): LoanResponseDTO {
         println("Processing application for ${request.applicantName}")
@@ -36,8 +35,11 @@ class LegacyLoanService(
             return LoanResponseDTO("REJECTED", "Applicant too young.")
         }
 
-        // This static call is still here (fixed in branch 03)
-        val creditScore = ExternalCreditBureau.getCreditScore(request.taxId)
+        // CHANGED: No longer calling the static method directly.
+        // We call the injected instance.
+        // OLD: val creditScore = ExternalCreditBureau.getCreditScore(request.taxId)
+        val creditScore = creditBureau.getCreditScore(request.taxId)
+
         println("Credit score received: $creditScore")
 
         var status = "PENDING"
@@ -64,7 +66,6 @@ class LegacyLoanService(
 
         if (status == "APPROVED") {
             try {
-                // Uses the injected service now
                 emailService.sendConfirmation("admin@bank.com", "Loan ${savedEntity.id} approved.")
             } catch (e: Exception) {
                 println("Failed to send email, but continuing anyway: ${e.message}")
