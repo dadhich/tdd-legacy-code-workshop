@@ -34,6 +34,10 @@ class LegacyLoanService {
             return LoanResponseDTO("REJECTED", "Applicant too young.")
         }
 
+        if (request.applicantAge < 25 && request.amount > 50000) {
+            return LoanResponseDTO("HIGH_RISK_REQUIRED", "Manual approval needed")
+        }
+
         val creditScore = ExternalCreditBureau.getCreditScore(request.taxId)
         println("Credit score received: $creditScore")
 
